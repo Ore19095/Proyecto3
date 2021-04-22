@@ -13,8 +13,8 @@ int velocidady = 1;
 //---------- CONSTANTES Y VARIABLES PARA LA PALETA -------------------------
 #define ANCHO_P_PEQUENA 36
 #define ALTO_P_PEQUENA 20
-int yPaleta = 35;
-int xPaleta = 35;
+int yPaleta = 220;
+int xPaleta = 180;
 int paletaVx = 0;
 int paletaVy = 0;
 int tamanioPaleta = 0;
@@ -46,7 +46,7 @@ void loop() {
   
   pintarPelota();
   moverPaleta();
-  colisionPaleta();
+  colisionDectection();
   //delay(10);
 }
 
@@ -75,11 +75,11 @@ void moverPaleta(){
   }else {
     paletaVx = 0;
   }
-  if ( analogica2 <1500 | analogica2>2100){
+/*  if ( analogica2 <1500 | analogica2>2100){
     paletaVy = map(analogica2,0,4095,-5,5);
   }else {
     paletaVy = 0;
-  }
+  } no se movera en y */
   
   //paletaVx = map(analogica1,0,4096,-3,3); 
   //paletaVy = map(analogica2,0,4096,-3,3);
@@ -152,7 +152,7 @@ void pintarPelota(){
 }
 
 
-void colisionPaleta(){
+void colisionDectection(){
     int ancho = 0;
     int alto = 0;
 
@@ -163,7 +163,18 @@ void colisionPaleta(){
         break;
     }
   
-    // verificar colison por la derecha de la paleta
-    if ( velocidadx < 0 &&  (xPelota - xPaleta - ancho) == 0  && (yPelota >= yPaleta && yPelota <= yPaleta+ alto)) velocidadx*= -1; 
+    //verificar colision con la paleta 
+     
+    if( (xPaleta - ANCHO_PELOTA < xPelota  || xPaleta + ancho > xPelota) && ( yPaleta - ALTO_PELOTA < yPelota && yPaleta + alto > yPelota)){
+        velocidadx += paletaVx/2;
+        velocidady *= -1;
+    }
+
+    if( yPelota + ANCHO_PELOTA == 240 ) {
+      LCD_Print( "Game Over" , 20, 100, 2, 0x0528,  0xffff);
+      velocidadx = 0;
+      velocidady = 0;
+    }
+        
     
 }
