@@ -4,7 +4,7 @@
 //--------------- CONSTANTES Y VARIABLES PARA LA PELOTA -------------------------
 #define ANCHO_PELOTA 18
 #define ALTO_PELOTA 18
-int yPelota = 222;
+int yPelota = 0;
 int xPelota = 0;
 int contadorPelota = 0; //para determinar que sprite hay que usar
 int velocidadx =1;
@@ -13,7 +13,7 @@ int velocidady = 1;
 //---------- CONSTANTES Y VARIABLES PARA LA PALETA -------------------------
 #define ANCHO_P_PEQUENA 36
 #define ALTO_P_PEQUENA 20
-int yPaleta = 220;
+int yPaleta = 200;
 int xPaleta = 180;
 int paletaVx = 0;
 int paletaVy = 0;
@@ -165,9 +165,12 @@ void colisionDectection(){
   
     //verificar colision con la paleta 
      
-    if( (xPaleta - ANCHO_PELOTA < xPelota  || xPaleta + ancho > xPelota) && ( yPaleta - ALTO_PELOTA < yPelota && yPaleta + alto > yPelota)){
-        velocidadx += paletaVx/2;
-        velocidady *= -1;
+    if( (xPelota + ANCHO_PELOTA >= xPaleta  && xPelota <= xPaleta + ancho) && ( yPaleta  <= yPelota + ALTO_PELOTA && yPaleta + alto > yPelota)){
+
+        if(xPelota + ANCHO_PELOTA <= xPaleta + ancho/2 && xPelota + ANCHO_PELOTA >= xPaleta && velocidadx >= 0 ) velocidadx *= -1;
+        else if (xPelota  >= xPaleta + ancho/2 && xPelota  <= xPaleta+ ancho && velocidadx <= 0 ) velocidadx *= -1;
+        
+        if ( velocidady > 0)  velocidady *= -1;
     }
 
     if( yPelota + ANCHO_PELOTA == 240 ) {
