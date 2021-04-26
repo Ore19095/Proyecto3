@@ -48,11 +48,12 @@ int lecturaAnteriorEstable = 1;
 int buttonAnterior = 1;
 unsigned long timeButton = 0;
 // -------VARIABLES DEL CONTROL DEL JUEGO ---------------------
+#define MUSICA PA_7
 boolean inicioJuego = false; // para senialar que la pelota se lanzó
 boolean jugando = false; // para indicar que se esta iniciando la partida
 int vidas = 3; // numero de vidas restantes
 int score = 0; // puntaje del juego
-int lvl = 6;
+int lvl = 1;
 ///char caracter1,caracter2,caracter3; // iniciales para guardar puntajes 
 int contadorLetra = 0; // para observar que letra se va a usar
 String letra = "" ;//para el nombre
@@ -66,6 +67,12 @@ void setup() {
   Serial.begin(9600);
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
   pinMode(PA_6, INPUT_PULLUP);
+  pinMode(PF_1, OUTPUT);
+  
+  
+  pinMode(MUSICA, OUTPUT);
+  digitalWrite(MUSICA, 1);
+  digitalWrite(PF_1, 1);
   Serial.println("Inicio");
     // make sure that the default chip select pin is set to
   // output, even if you don't use it:
@@ -88,6 +95,10 @@ void loop() {
   //delay(16);  
   readButton();
   if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !jugando){
+    digitalWrite(MUSICA, 0);
+    vidas = 3;
+    score = 0;
+    lvl = 1;
     jugando = true;
     LCD_Clear(  0xFFFF);
     LCD_Print("3" , 150, 110, 2, 0x0, 0xFFFF);
@@ -101,8 +112,13 @@ void loop() {
     LCD_Clear(  0xFFFF);
   }
   // si se presiona el boton al estar en el menu de inicio se comienza el juego
-  if(jugando) game();
+  if(jugando){
+    
+    establecerNivel();
+    game();
+  }
   else{
+    digitalWrite(MUSICA, 1);
     LCD_Print("Presione el boton" , 20, 80, 2, 0x0, 0xFFFF);
     LCD_Print(" para comenzar" , 20, 100, 2, 0x0, 0xFFFF);
   }
@@ -123,8 +139,8 @@ void game(){
     readButton();
     if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !inicioJuego){
       inicioJuego = true;
-      velocidadx = lvl/2+1;
-      velocidady = -lvl/2-1; 
+      velocidadx = lvl+1;
+      velocidady = -lvl-1; 
   }
   
     pintarPelota();
@@ -133,14 +149,14 @@ void game(){
     colisionDectection();
     comprobacionGanar();  
   }
-
+  FillRect(0,21,320,100,0xFFFF);
   // se guarda el puntaje 
   LCD_Print("      Fin del juego" , 70, 80, 1.5, 0x0, 0xFFFF);
   LCD_Print("desea guardar su puntaje?", 70, 100, 1.5, 0x0, 0xFFFF);
   LCD_Print("      *Si   No"  ,70,120 , 1.5, 0x0, 0xFFFF);
   int opcion = 1;
   boolean seleccionado = false;
-
+  
   int analogicoAnterior = 2048, actual= 2048; // para verificar que se este selecionando bien
   while(!seleccionado){
     analogicoAnterior = actual;
@@ -256,9 +272,11 @@ void game(){
     }
 
     
+    
   }
   
-  
+  jugando = false;
+  LCD_Clear(  0xFFFF);
   
 }
 
@@ -404,7 +422,7 @@ void colisionDectection(){
             ( yBloques[i]  <= yPelota + ALTO_PELOTA && yBloques[i] + ALTO_BLOQUE > yPelota)&& mostrarBloque[i] >= 1 ){
               if(xPelota + ANCHO_PELOTA <= xBloques[i] + ANCHO_BLOQUE/2 && xPelota + ANCHO_PELOTA >= xBloques[i] && velocidadx >= 0 ) velocidadx *= -1;
               else if (xPelota  >= xBloques[i] + ANCHO_BLOQUE/2 && xPelota  <= xBloques[i] + ANCHO_BLOQUE && velocidadx <= 0 ) velocidadx *= -1;
-              if(!yaCambio){
+              else if(!yaCambio){
                 
                 velocidady *= -1;
                 yaCambio = true;
@@ -425,7 +443,7 @@ void colisionDectection(){
         if(xPelota + ANCHO_PELOTA <= xPaleta + ancho/2 && xPelota + ANCHO_PELOTA >= xPaleta && velocidadx >= 0 ) velocidadx *= -1;
         else if (xPelota  >= xPaleta + ancho/2 && xPelota  <= xPaleta+ ancho && velocidadx <= 0 ) velocidadx *= -1;
         
-        if ( velocidady > 0)  velocidady *= -1;
+        if(yPelota + ALTO_PELOTA <=  yPaleta + alto/2) velocidady *= -1;
     }
 
     if( yPelota + velocidady + ANCHO_PELOTA >= 240 ) {
@@ -479,7 +497,16 @@ void comprobacionGanar(){
         if(lecturaAnteriorEstable == 0 && lecturaButton ==1) presiono = true;
       }
       FillRect(18,50,280 ,80, 0xFFFF);
-      switch(lvl){
+      establecerNivel();
+      //for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 1;
+       
+    }
+
+    
+}
+
+void establecerNivel(){
+  switch(lvl){
         case 1:
           nBloques = 6;
           for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 1;
@@ -506,9 +533,4 @@ void comprobacionGanar(){
           for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 4;
           break;
       }
-      //for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 1;
-       
-    }
-
-    
 }
