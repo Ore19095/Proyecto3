@@ -44,17 +44,22 @@ int lecturaButton = 1;
 int lecturaAnteriorEstable = 1;
 int buttonAnterior = 1;
 unsigned long timeButton = 0;
-// VARIABLES DEL CONTROL DEL JUEGO 
-boolean inicioJuego = false;
+// -------VARIABLES DEL CONTROL DEL JUEGO ---------------------
+boolean inicioJuego = false; // para senialar que la pelota se lanzó
+boolean jugando = false; // para indicar que se esta iniciando la partida
 int vidas = 3; // numero de vidas restantes
 int score = 0; // puntaje del juego
 int lvl = 1;
+///char caracter1,caracter2,caracter3; // iniciales para guardar puntajes 
+int contadorLetra = 0; // para observar que letra se va a usar
+String letra = "" ;//para el nombre
+const char letras[26]={'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
 
 //***************************************************************************************************************************************
 // Inicialización
 //***************************************************************************************************************************************
 void setup() {
-  SysCtlClockSet(SYSCTL_SYSDIV_2_5|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
+  //SysCtlClockSet(SYSCTL_SYSDIV_2_5|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
   Serial.begin(9600);
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
   pinMode(PA_6, INPUT_PULLUP);
@@ -69,8 +74,25 @@ void setup() {
 void loop() {
   
   //delay(16);  
-
-  game();
+  readButton();
+  if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !jugando){
+    jugando = true;
+    LCD_Clear(  0xFFFF);
+    LCD_Print("3" , 150, 110, 2, 0x0, 0xFFFF);
+    delay(1000);
+    LCD_Print("2" , 150, 110, 2, 0x0, 0xFFFF);
+    delay(1000);
+    LCD_Print("1" , 150, 110, 2, 0x0, 0xFFFF);
+    delay(1000);
+    LCD_Print("inicio" , 120, 110, 2, 0x0, 0xFFFF);
+    delay(1000);
+  }
+  // si se presiona el boton al estar en el menu de inicio se comienza el juego
+  if(jugando) game();
+  else{
+    LCD_Print("Presione el boton" , 20, 80, 2, 0x0, 0xFFFF);
+    LCD_Print(" para comenzar" , 20, 100, 2, 0x0, 0xFFFF);
+  }
   
   //delay(10);
 }
@@ -87,8 +109,8 @@ void game(){
     readButton();
     if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !inicioJuego){
       inicioJuego = true;
-      velocidadx = lvl+1;
-      velocidady = -lvl-1; 
+      velocidadx = lvl/2+1;
+      velocidady = -lvl/2-1; 
   }
   
     pintarPelota();
@@ -115,12 +137,96 @@ void game(){
       LCD_Print("      *Si   No"  ,70,120 , 1.5, 0x0, 0xFFFF);
       opcion = 1;
     }
-    if( analogicoAnterior > 2600 && actual > 1024 && actual < 2500){
+    else if( analogicoAnterior > 2600 && actual > 1024 && actual < 2500){
      LCD_Print("       Si  *No"  ,70,120 , 1.5, 0x0, 0xFFFF);
       opcion = 0;
     }
+    readButton();
+    if(lecturaAnteriorEstable == 0 && lecturaButton ==1) seleccionado = true;
     
   }
+
+  //si si se quiere guardar el puntaje
+  seleccionado = false;
+  if(opcion  ==1 ){
+    char letra1,letra2,letra3;
+    LCD_Print("Seleccione sus iniciales"  ,70,100 , 1.5, 0x0, 0xFFFF);
+    LCD_Print("         A _ _"  ,70,120 , 1.5, 0x0, 0xFFFF);
+    seleccionado = false;
+  
+    while(!seleccionado){
+      analogicoAnterior = actual;
+      delay(50);
+      actual = analogRead(POTX);
+      
+      if( analogicoAnterior > 2600 && actual > 1024 && actual < 2500){
+        contadorLetra = (contadorLetra+1)%26;
+        LCD_Print("         "+String(letras[contadorLetra])+ " _ _"  ,70,120 , 1.5, 0x0, 0xFFFF);
+      }
+      else if( analogicoAnterior < 1000 && actual > 1024 && actual < 2500){
+        if(contadorLetra == 0) contadorLetra = 26; //se hace underflow
+        contadorLetra = (contadorLetra-1)%26;
+        LCD_Print("         "+String(letras[contadorLetra])+ " _ _"  ,70,120 , 1.5, 0x0, 0xFFFF);
+      }
+      readButton();
+      if(lecturaAnteriorEstable == 0 && lecturaButton ==1) seleccionado = true;
+      
+    }
+    letra1 = letras[contadorLetra];
+    contadorLetra =0;
+    LCD_Print("         "+String(letra1)+" A _"  ,70,120 , 1.5, 0x0, 0xFFFF);
+    seleccionado = false;
+    while(!seleccionado){
+      analogicoAnterior = actual;
+      delay(50);
+      actual = analogRead(POTX);
+      
+      if( analogicoAnterior > 2600 && actual > 1024 && actual < 2500){
+        contadorLetra = (contadorLetra+1)%26;
+        LCD_Print("         "+ String(letra1)+" "+ String(letras[contadorLetra])+ " _"  ,70,120 , 1.5, 0x0, 0xFFFF);
+      }
+      else if( analogicoAnterior < 1000 && actual > 1024 && actual < 2500){
+        if(contadorLetra == 0) contadorLetra = 26; //se hace underflow
+        contadorLetra = (contadorLetra-1)%26;
+        LCD_Print("         "+String(letra1)+" "+ String(letras[contadorLetra])+ " _"  ,70,120 , 1.5, 0x0, 0xFFFF);
+      }
+      readButton();
+      if(lecturaAnteriorEstable == 0 && lecturaButton ==1) seleccionado = true;
+      
+    }
+    letra2 = letras[contadorLetra];
+    contadorLetra =0;
+    LCD_Print("         "+String(letra1)+" "+String(letra2)+ " A"  ,70,120 , 1.5, 0x0, 0xFFFF);
+    seleccionado = false;
+    while(!seleccionado){
+      analogicoAnterior = actual;
+      delay(50);
+      actual = analogRead(POTX);
+      
+      if( analogicoAnterior > 2600 && actual > 1024 && actual < 2500){
+        contadorLetra = (contadorLetra+1)%26;
+        LCD_Print("         "+ String(letra1)+" "+ String(letra2)+ " "+String(letras[contadorLetra])  ,70,120 , 1.5, 0x0, 0xFFFF);
+      }
+      else if( analogicoAnterior < 1000 && actual > 1024 && actual < 2500){
+        if(contadorLetra == 0) contadorLetra = 26; //se hace underflow
+        contadorLetra = (contadorLetra-1)%26;
+        LCD_Print("         "+String(letra1)+" "+ String(letra2)+ " "+String(letras[contadorLetra])  ,70,120 , 1.5, 0x0, 0xFFFF);
+      }
+      readButton();
+      if(lecturaAnteriorEstable == 0 && lecturaButton ==1) seleccionado = true;
+      
+    
+    }
+    letra3 = letras[contadorLetra];
+    
+    // se concatenan los 3 caracteres elegidos
+    letra.concat(letra1);
+    letra.concat(letra2);
+    letra.concat(letra3);
+    
+    
+  }
+  
   
   
 }
@@ -140,8 +246,8 @@ void moverPaleta(){
   int analogica1 =analogRead(POTX);
   int analogica2 =analogRead(POTY);
 
-  Serial.println(analogica1);
-  Serial.println(analogica2);
+  //Serial.println(analogica1);
+  //Serial.println(analogica2);
 
   if ( analogica1 <1500 | analogica1>2100){
     paletaVx = map(analogica1,0,4095,-10,10); 
