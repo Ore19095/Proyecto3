@@ -1,4 +1,6 @@
 #include "ili9341.h";
+#include <SPI.h>
+#include <SD.h>
 
 
 //--------------- CONSTANTES Y VARIABLES PARA LA PELOTA -------------------------
@@ -19,9 +21,10 @@ int paletaVx = 0;
 int paletaVy = 0;
 int tamanioPaleta = 0;
 ///------------ VARIABLES PARA LOS BLOQUES -----------------
-#define nBloques 2
+#define BLOQUES 24
 #define ALTO_BLOQUE 12
 #define ANCHO_BLOQUE 26
+int nBloques = 6;
 int xBloques [] = {85,110,135,160,185,210,
                    85,110,135,160,185,210,
                    85,110,135,160,185,210,
@@ -49,7 +52,7 @@ boolean inicioJuego = false; // para senialar que la pelota se lanzó
 boolean jugando = false; // para indicar que se esta iniciando la partida
 int vidas = 3; // numero de vidas restantes
 int score = 0; // puntaje del juego
-int lvl = 1;
+int lvl = 6;
 ///char caracter1,caracter2,caracter3; // iniciales para guardar puntajes 
 int contadorLetra = 0; // para observar que letra se va a usar
 String letra = "" ;//para el nombre
@@ -64,6 +67,15 @@ void setup() {
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
   pinMode(PA_6, INPUT_PULLUP);
   Serial.println("Inicio");
+    // make sure that the default chip select pin is set to
+  // output, even if you don't use it:
+  pinMode(10, OUTPUT);
+  SPI.setModule(0); //uso del modulo spi 
+  // see if the card is present and can be initialized:
+  if (!SD.begin(PA_3)) Serial.println("Card failed, or not present");
+    // don't do anything more:
+   
+  
   LCD_Init();
   //LCD_Clear(0x00);
   LCD_Clear(  0xFFFF);
@@ -86,6 +98,7 @@ void loop() {
     delay(1000);
     LCD_Print("inicio" , 120, 110, 2, 0x0, 0xFFFF);
     delay(1000);
+    LCD_Clear(  0xFFFF);
   }
   // si se presiona el boton al estar en el menu de inicio se comienza el juego
   if(jugando) game();
@@ -94,7 +107,7 @@ void loop() {
     LCD_Print(" para comenzar" , 20, 100, 2, 0x0, 0xFFFF);
   }
   
-  //delay(10);
+  
 }
 // funcion que se ejecuta cuando se esta jugando
 void game(){
@@ -106,6 +119,7 @@ void game(){
   H_line(0,18,340,0x0);
  
   while(vidas > 0){
+    delay(10);
     readButton();
     if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !inicioJuego){
       inicioJuego = true;
@@ -223,7 +237,24 @@ void game(){
     letra.concat(letra1);
     letra.concat(letra2);
     letra.concat(letra3);
+    letra.concat(' ');
+    letra.concat(String(score));
     
+    File dataFile = SD.open("puntos.txt", FILE_WRITE);
+
+  // if the file is available, write to it:
+    if (dataFile) {
+      
+      dataFile.println(letra);
+      dataFile.close();
+      // print to the serial port too:
+      Serial.println(letra);
+    }
+    // if the file isn't open, pop up an error:
+    else {
+      Serial.println("error opening datalog.txt");
+    }
+
     
   }
   
@@ -351,7 +382,7 @@ void pintarPelota(){
 
 void dibujarBloques(){
   for (int i = 0; i < nBloques ; i++){
-    if(mostrarBloque[i] == 1 ) LCD_Sprite(xBloques[i],yBloques[i], ANCHO_BLOQUE, ALTO_BLOQUE, bloqueNaranja,4, 0,0,0);
+    if(mostrarBloque[i] >= 1  ) LCD_Sprite(xBloques[i],yBloques[i], ANCHO_BLOQUE, ALTO_BLOQUE, bloqueNaranja,4, mostrarBloque[i]-1,0,0);
   }
 }
 
@@ -370,7 +401,7 @@ void colisionDectection(){
      for (int i = 0; i < nBloques; i++){
 
         if((xPelota + ANCHO_PELOTA >= xBloques[i]  && xPelota <= xBloques[i] + ANCHO_BLOQUE) &&
-            ( yBloques[i]  <= yPelota + ALTO_PELOTA && yBloques[i] + ALTO_BLOQUE > yPelota)&& mostrarBloque[i] == 1 ){
+            ( yBloques[i]  <= yPelota + ALTO_PELOTA && yBloques[i] + ALTO_BLOQUE > yPelota)&& mostrarBloque[i] >= 1 ){
               if(xPelota + ANCHO_PELOTA <= xBloques[i] + ANCHO_BLOQUE/2 && xPelota + ANCHO_PELOTA >= xBloques[i] && velocidadx >= 0 ) velocidadx *= -1;
               else if (xPelota  >= xBloques[i] + ANCHO_BLOQUE/2 && xPelota  <= xBloques[i] + ANCHO_BLOQUE && velocidadx <= 0 ) velocidadx *= -1;
               if(!yaCambio){
@@ -379,8 +410,8 @@ void colisionDectection(){
                 yaCambio = true;
               }
               
-              mostrarBloque[i] = 0;
-              FillRect( xBloques[i], yBloques[i], ANCHO_BLOQUE, ALTO_BLOQUE, 0xFFFF);
+              mostrarBloque[i] -= 1;
+              if(mostrarBloque[i] == 0) FillRect( xBloques[i], yBloques[i], ANCHO_BLOQUE, ALTO_BLOQUE, 0xFFFF);
               score += 1;
               LCD_Print("Score:" + String(score) , 70, 0, 2, 0x0, 0xFFFF);
             }
@@ -448,8 +479,34 @@ void comprobacionGanar(){
         if(lecturaAnteriorEstable == 0 && lecturaButton ==1) presiono = true;
       }
       FillRect(18,50,280 ,80, 0xFFFF);
-
-      for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 1;
+      switch(lvl){
+        case 1:
+          nBloques = 6;
+          for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 1;
+          
+          break;
+        case 2:
+          nBloques = 12;
+          for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 1;
+          break;
+        case 3:
+          nBloques = 24;
+          for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 1;
+          break;       
+        case 4:
+          nBloques = 24;
+          for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 2;
+          break;
+        case 5:
+          nBloques = 24;
+          for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 3;
+          break;   
+        default:
+          nBloques = 24;
+          for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 4;
+          break;
+      }
+      //for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 1;
        
     }
 
