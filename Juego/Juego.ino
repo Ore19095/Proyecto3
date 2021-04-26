@@ -19,12 +19,21 @@ int paletaVx = 0;
 int paletaVy = 0;
 int tamanioPaleta = 0;
 ///------------ VARIABLES PARA LOS BLOQUES -----------------
-#define nBloques 12
+#define nBloques 2
 #define ALTO_BLOQUE 12
 #define ANCHO_BLOQUE 26
-int xBloques [] = {10 , 35,60,85,110,135,160,185,210,235,260,285,310};
-int yBloques [] = {40,40,40,40,40,40,40,40,40,40,40,40};
-int mostrarBloque[] = {1,1,1,1,1,1,1,1,1,1,1,1};
+int xBloques [] = {85,110,135,160,185,210,
+                   85,110,135,160,185,210,
+                   85,110,135,160,185,210,
+                   85,110,135,160,185,210};
+int yBloques [] = {40,40,40,40,40,40,
+                   65,65,65,65,65,65,
+                   90,90,90,90,90,90,
+                   115,115,115,115,115,115};
+int mostrarBloque[] = {1,1,1,1,1,1,
+                       1,1,1,1,1,1,
+                       1,1,1,1,1,1,
+                       1,1,1,1,1,1};
 boolean yaCambio = false; //esta variable establece que si ya cambio de direccion una vez en una colisión ya no lo hará de nuevo
 //-------- PINES DEL POTENCIOMETRO ------------------------
 #define POTX PE_0
@@ -39,7 +48,7 @@ unsigned long timeButton = 0;
 boolean inicioJuego = false;
 int vidas = 3; // numero de vidas restantes
 int score = 0; // puntaje del juego
-int nivel = 1;
+int lvl = 1;
 
 //***************************************************************************************************************************************
 // Inicialización
@@ -70,21 +79,49 @@ void game(){
   
   LCD_Sprite(0,0, 16, 16, corazon,1, 0,0,0);
   LCD_Print("X" + String(vidas) , 18, 0, 2, 0x0, 0xFFFF);
-  LCD_Print("Score:" + String(score) , 100, 0, 2, 0x0, 0xFFFF);
+  LCD_Print("Score:" + String(score) , 70, 0, 2, 0x0, 0xFFFF);
+   LCD_Print("lvl." + String(lvl) , 220, 0, 2, 0x0, 0xFFFF);
   H_line(0,18,340,0x0);
+ 
   while(vidas > 0){
     readButton();
     if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !inicioJuego){
       inicioJuego = true;
-      velocidadx = 1;
-      velocidady = -1; 
+      velocidadx = lvl+1;
+      velocidady = -lvl-1; 
   }
   
     pintarPelota();
     moverPaleta();
     dibujarBloques();
-    colisionDectection();  
+    colisionDectection();
+    comprobacionGanar();  
   }
+
+  // se guarda el puntaje 
+  LCD_Print("      Fin del juego" , 70, 80, 1.5, 0x0, 0xFFFF);
+  LCD_Print("desea guardar su puntaje?", 70, 100, 1.5, 0x0, 0xFFFF);
+  LCD_Print("      *Si   No"  ,70,120 , 1.5, 0x0, 0xFFFF);
+  int opcion = 1;
+  boolean seleccionado = false;
+
+  int analogicoAnterior = 2048, actual= 2048; // para verificar que se este selecionando bien
+  while(!seleccionado){
+    analogicoAnterior = actual;
+    delay(50);
+    actual = analogRead(POTX);
+    
+    if( analogicoAnterior < 1000 && actual > 1024 && actual < 2500){
+      LCD_Print("      *Si   No"  ,70,120 , 1.5, 0x0, 0xFFFF);
+      opcion = 1;
+    }
+    if( analogicoAnterior > 2600 && actual > 1024 && actual < 2500){
+     LCD_Print("       Si  *No"  ,70,120 , 1.5, 0x0, 0xFFFF);
+      opcion = 0;
+    }
+    
+  }
+  
   
 }
 
@@ -107,7 +144,7 @@ void moverPaleta(){
   Serial.println(analogica2);
 
   if ( analogica1 <1500 | analogica1>2100){
-    paletaVx = map(analogica1,0,4095,-5,5); 
+    paletaVx = map(analogica1,0,4095,-10,10); 
   }else {
     paletaVx = 0;
   }
@@ -238,8 +275,8 @@ void colisionDectection(){
               
               mostrarBloque[i] = 0;
               FillRect( xBloques[i], yBloques[i], ANCHO_BLOQUE, ALTO_BLOQUE, 0xFFFF);
-              score += 10;
-              LCD_Print("Score:" + String(score) , 100, 0, 2, 0x0, 0xFFFF);
+              score += 1;
+              LCD_Print("Score:" + String(score) , 70, 0, 2, 0x0, 0xFFFF);
             }
       
      }
@@ -254,7 +291,7 @@ void colisionDectection(){
         if ( velocidady > 0)  velocidady *= -1;
     }
 
-    if( yPelota + ANCHO_PELOTA == 240 ) {
+    if( yPelota + velocidady + ANCHO_PELOTA >= 240 ) {
       vidas--;
       FillRect(xPelota, yPelota, ANCHO_PELOTA, ALTO_PELOTA, 0xFFFF);
       LCD_Print("X" + String(vidas) , 18, 0, 2, 0x0, 0xFFFF);
@@ -282,5 +319,33 @@ void readButton(){
 // funcion que realiza la comprobación de que gano el nivel
 
 void comprobacionGanar(){
-  
+    int variable= 0;
+    for (int i = 0; i<nBloques; i++) variable+= mostrarBloque[i];
+
+    if (variable == 0){
+      FillRect(xPelota,yPelota, ANCHO_PELOTA,ALTO_PELOTA, 0xFFFF);
+      lvl++;
+      LCD_Print("lvl." + String(lvl) , 220, 0, 2, 0x0, 0xFFFF);
+      velocidadx = 0;
+      velocidady = 0;
+      inicioJuego = false;
+      xPelota = xPaleta+9; // se localiza en en el centro de la paleta
+      yPelota = yPaleta - ALTO_PELOTA;
+      pintarPelota();
+      LCD_Print("Has pasado al" , 18, 50, 2, 0x0, 0xFFFF);
+      LCD_Print("siguiente nivel" , 18, 70, 2, 0x0, 0xFFFF);
+      LCD_Print("Presiona el boton" , 18, 90, 2, 0x0, 0xFFFF);
+      LCD_Print("para continuar" , 18, 110, 2, 0x0, 0xFFFF);
+      boolean presiono = false;
+      while(!presiono ){
+        readButton();
+        if(lecturaAnteriorEstable == 0 && lecturaButton ==1) presiono = true;
+      }
+      FillRect(18,50,280 ,80, 0xFFFF);
+
+      for(int i = 0; i< nBloques; i++) mostrarBloque[i] = 1;
+       
+    }
+
+    
 }
