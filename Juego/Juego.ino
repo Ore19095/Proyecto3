@@ -19,12 +19,12 @@ int paletaVx = 0;
 int paletaVy = 0;
 int tamanioPaleta = 0;
 ///------------ VARIABLES PARA LOS BLOQUES -----------------
-#define nBloques 5
+#define nBloques 12
 #define ALTO_BLOQUE 12
 #define ANCHO_BLOQUE 26
-int xBloques [] = {20 , 45,70,95,120,145,};
-int yBloques [] = {60 ,60,60,60,60};
-int mostrarBloque[] = {1,1,1,1,1};
+int xBloques [] = {10 , 35,60,85,110,135,160,185,210,235,260,285,310};
+int yBloques [] = {40,40,40,40,40,40,40,40,40,40,40,40};
+int mostrarBloque[] = {1,1,1,1,1,1,1,1,1,1,1,1};
 boolean yaCambio = false; //esta variable establece que si ya cambio de direccion una vez en una colisión ya no lo hará de nuevo
 //-------- PINES DEL POTENCIOMETRO ------------------------
 #define POTX PE_0
@@ -37,6 +37,9 @@ int buttonAnterior = 1;
 unsigned long timeButton = 0;
 // VARIABLES DEL CONTROL DEL JUEGO 
 boolean inicioJuego = false;
+int vidas = 3; // numero de vidas restantes
+int score = 0; // puntaje del juego
+int nivel = 1;
 
 //***************************************************************************************************************************************
 // Inicialización
@@ -55,7 +58,7 @@ void setup() {
 // Loop Infinito
 //***************************************************************************************************************************************
 void loop() {
-  readButton();
+  
   //delay(16);  
 
   game();
@@ -64,16 +67,25 @@ void loop() {
 }
 // funcion que se ejecuta cuando se esta jugando
 void game(){
-  if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !inicioJuego){
-    inicioJuego = true;
-    velocidadx = paletaVx;
-    velocidady = -1; 
+  
+  LCD_Sprite(0,0, 16, 16, corazon,1, 0,0,0);
+  LCD_Print("X" + String(vidas) , 18, 0, 2, 0x0, 0xFFFF);
+  LCD_Print("Score:" + String(score) , 100, 0, 2, 0x0, 0xFFFF);
+  H_line(0,18,340,0x0);
+  while(vidas > 0){
+    readButton();
+    if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !inicioJuego){
+      inicioJuego = true;
+      velocidadx = 1;
+      velocidady = -1; 
   }
   
-  pintarPelota();
-  moverPaleta();
-  dibujarBloques();
-  colisionDectection();
+    pintarPelota();
+    moverPaleta();
+    dibujarBloques();
+    colisionDectection();  
+  }
+  
 }
 
 void moverPaleta(){
@@ -156,7 +168,7 @@ void pintarPelota(){
       break;
   }
   if( xPelota + velocidadx <0 || xPelota + velocidadx > 302) velocidadx*= -1;
-  if( yPelota + velocidady <0 || (yPelota + velocidady) > 222) velocidady*= -1;
+  if( yPelota + velocidady <19 || (yPelota + velocidady) > 222) velocidady*= -1;
 
   xPelota += velocidadx;
   yPelota += velocidady;
@@ -226,6 +238,8 @@ void colisionDectection(){
               
               mostrarBloque[i] = 0;
               FillRect( xBloques[i], yBloques[i], ANCHO_BLOQUE, ALTO_BLOQUE, 0xFFFF);
+              score += 10;
+              LCD_Print("Score:" + String(score) , 100, 0, 2, 0x0, 0xFFFF);
             }
       
      }
@@ -241,9 +255,14 @@ void colisionDectection(){
     }
 
     if( yPelota + ANCHO_PELOTA == 240 ) {
-      LCD_Print( "Game Over" , 20, 100, 2, 0x0528,  0xffff);
+      vidas--;
+      FillRect(xPelota, yPelota, ANCHO_PELOTA, ALTO_PELOTA, 0xFFFF);
+      LCD_Print("X" + String(vidas) , 18, 0, 2, 0x0, 0xFFFF);
       velocidadx = 0;
       velocidady = 0;
+      xPelota = xPaleta+9; // se localiza en en el centro de la paleta
+      yPelota = yPaleta - ALTO_PELOTA;
+      inicioJuego = false;
     } 
 }
 
@@ -257,7 +276,11 @@ void readButton(){
       lecturaButton = lectura;
     }
 
-    buttonAnterior = lectura;
-    
-    
+    buttonAnterior = lectura;   
+}
+
+// funcion que realiza la comprobación de que gano el nivel
+
+void comprobacionGanar(){
+  
 }
