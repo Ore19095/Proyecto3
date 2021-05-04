@@ -95,11 +95,13 @@ void loop() {
   //delay(16);  
   readButton();
   if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !jugando){
+    // si se esta en la pantalla de inicio y se pulsa el boton se comienza el juego
     digitalWrite(MUSICA, 0);
     vidas = 3;
     score = 0;
     lvl = 1;
     jugando = true;
+    //  se realiza la secuencia de inicio
     LCD_Clear(  0xFFFF);
     LCD_Print("3" , 150, 110, 2, 0x0, 0xFFFF);
     delay(1000);
@@ -113,11 +115,13 @@ void loop() {
   }
   // si se presiona el boton al estar en el menu de inicio se comienza el juego
   if(jugando){
-    
+    // se establece la configuración de bloques correspondiente a cada nivel
     establecerNivel();
+    // se comienza el juego
     game();
   }
   else{
+    // pantalla de inicio
     digitalWrite(MUSICA, 1);
     LCD_Print("Presione el boton" , 20, 80, 2, 0x0, 0xFFFF);
     LCD_Print(" para comenzar" , 20, 100, 2, 0x0, 0xFFFF);
@@ -127,36 +131,38 @@ void loop() {
 }
 // funcion que se ejecuta cuando se esta jugando
 void game(){
-  
+  // se pinta la barra de información
   LCD_Sprite(0,0, 16, 16, corazon,1, 0,0,0);
   LCD_Print("X" + String(vidas) , 18, 0, 2, 0x0, 0xFFFF);
   LCD_Print("Score:" + String(score) , 70, 0, 2, 0x0, 0xFFFF);
    LCD_Print("lvl." + String(lvl) , 220, 0, 2, 0x0, 0xFFFF);
   H_line(0,18,340,0x0);
- 
+ // mientras no se pierda en el juego
   while(vidas > 0){
-    delay(10);
+    //delay(10);
     readButton();
+    // se lanza la pelota al presionar el boton
     if (lecturaAnteriorEstable == 0 && lecturaButton ==1 && !inicioJuego){
       inicioJuego = true;
       velocidadx = lvl+1;
       velocidady = -lvl-1; 
   }
-  
+    // se realizan las acciones correspondientes a cada elemento dependiendo de sus propiedades 
     pintarPelota();
     moverPaleta();
     dibujarBloques();
     colisionDectection();
     comprobacionGanar();  
   }
-  FillRect(0,21,320,100,0xFFFF);
+  // hubo una derrota y se pregunta si se desea guardar el puntaje 
+  FillRect(0,21,320,150,0xFFFF);
   // se guarda el puntaje 
   LCD_Print("      Fin del juego" , 70, 80, 1.5, 0x0, 0xFFFF);
   LCD_Print("desea guardar su puntaje?", 70, 100, 1.5, 0x0, 0xFFFF);
   LCD_Print("      *Si   No"  ,70,120 , 1.5, 0x0, 0xFFFF);
   int opcion = 1;
   boolean seleccionado = false;
-  
+  // se utiliza el joystick para seleccionar y cuando se presiona el boton se establece la opcion elegida
   int analogicoAnterior = 2048, actual= 2048; // para verificar que se este selecionando bien
   while(!seleccionado){
     analogicoAnterior = actual;
@@ -165,12 +171,15 @@ void game(){
     
     if( analogicoAnterior < 1000 && actual > 1024 && actual < 2500){
       LCD_Print("      *Si   No"  ,70,120 , 1.5, 0x0, 0xFFFF);
+      // se coloca la opcion de si guardar puntaje
       opcion = 1;
     }
     else if( analogicoAnterior > 2600 && actual > 1024 && actual < 2500){
      LCD_Print("       Si  *No"  ,70,120 , 1.5, 0x0, 0xFFFF);
+      // se coloca la opcion de no guardar puntaje
       opcion = 0;
     }
+    // se lee el boton
     readButton();
     if(lecturaAnteriorEstable == 0 && lecturaButton ==1) seleccionado = true;
     
@@ -188,12 +197,14 @@ void game(){
       analogicoAnterior = actual;
       delay(50);
       actual = analogRead(POTX);
-      
+      // se selecciona la primera letra 
       if( analogicoAnterior > 2600 && actual > 1024 && actual < 2500){
+        // se va aumentando en el selecor de letra
         contadorLetra = (contadorLetra+1)%26;
         LCD_Print("         "+String(letras[contadorLetra])+ " _ _"  ,70,120 , 1.5, 0x0, 0xFFFF);
       }
       else if( analogicoAnterior < 1000 && actual > 1024 && actual < 2500){
+        // se va disminuyendo
         if(contadorLetra == 0) contadorLetra = 26; //se hace underflow
         contadorLetra = (contadorLetra-1)%26;
         LCD_Print("         "+String(letras[contadorLetra])+ " _ _"  ,70,120 , 1.5, 0x0, 0xFFFF);
@@ -202,6 +213,7 @@ void game(){
       if(lecturaAnteriorEstable == 0 && lecturaButton ==1) seleccionado = true;
       
     }
+    // se repite el proceso anterior con pero ahora con la segunda letra
     letra1 = letras[contadorLetra];
     contadorLetra =0;
     LCD_Print("         "+String(letra1)+" A _"  ,70,120 , 1.5, 0x0, 0xFFFF);
@@ -224,6 +236,7 @@ void game(){
       if(lecturaAnteriorEstable == 0 && lecturaButton ==1) seleccionado = true;
       
     }
+    // se repite el proceso anterior pero con la tercera letra
     letra2 = letras[contadorLetra];
     contadorLetra =0;
     LCD_Print("         "+String(letra1)+" "+String(letra2)+ " A"  ,70,120 , 1.5, 0x0, 0xFFFF);
@@ -258,30 +271,30 @@ void game(){
     
     File dataFile = SD.open("puntos.txt", FILE_WRITE);
 
-  // if the file is available, write to it:
+  //si el archivo esta disponible se escribe en el
     if (dataFile) {
       
       dataFile.println(letra);
       dataFile.close();
-      // print to the serial port too:
+     
       Serial.println(letra);
     }
-    // if the file isn't open, pop up an error:
+  
     else {
-      Serial.println("error opening datalog.txt");
+      Serial.println("error opening puntos.txt");
     }
 
     
     
   }
-  
+  // se termina el juego y se va a la pantalla principal
   jugando = false;
   LCD_Clear(  0xFFFF);
   
 }
 
 void moverPaleta(){
-  
+  // se selecciona el ancho de la paleta (ya que este puede se variable) *aun no implementado
   int ancho = 0;
   int alto = 0;
 
@@ -291,13 +304,13 @@ void moverPaleta(){
       ancho = ANCHO_P_PEQUENA;
       break;
   }
-  
+  // lectura de los potenciometros
   int analogica1 =analogRead(POTX);
   int analogica2 =analogRead(POTY);
 
   //Serial.println(analogica1);
   //Serial.println(analogica2);
-
+  // se mueve la paletea
   if ( analogica1 <1500 | analogica1>2100){
     paletaVx = map(analogica1,0,4095,-10,10); 
   }else {
@@ -308,7 +321,7 @@ void moverPaleta(){
   }else {
     paletaVy = 0;
   } no se movera en y */
-  
+  // se realiza un mapeo 
   //paletaVx = map(analogica1,0,4096,-3,3); 
   //paletaVy = map(analogica2,0,4096,-3,3);
   if ( xPaleta + paletaVx >= 0 && xPaleta + paletaVx <= 320 - ancho) xPaleta += paletaVx;
@@ -319,12 +332,14 @@ void moverPaleta(){
   }*/
   
   
-
+  // se pinta la paleta
   LCD_Sprite( xPaleta, yPaleta , ANCHO_P_PEQUENA,ALTO_P_PEQUENA, plataformaAzulPequena ,1, 0 ,0,0);
 
   
   
   //--------------- ELIMINAR LOS RESTOS DEL SPRITE ANTERIOR --------------------------------
+  /* dependiendo de la direccón en la que se este moviendo de esa forma se iran borrando los rastros del 
+      sprite anterior*/
   if(paletaVx >=0 && paletaVy<=0){
      
      for (int i = 1; i <= paletaVx; i++) V_line(xPaleta - i,  yPaleta   - paletaVy , alto, 0XFFFF);
@@ -350,6 +365,7 @@ void moverPaleta(){
 
 
 void pintarPelota(){
+  // se selecciona el ancho de la paleta (ya que este puede se variable) *aun no implementado
   int ancho = 0;
   int alto = 0;
 
@@ -375,6 +391,8 @@ void pintarPelota(){
     else FillRect(xPelota + ANCHO_PELOTA + 1 , yPelota, -paletaVx, ALTO_PELOTA, 0xFFFF);  
   }
     //-- se limpia el rasto anterior del sprite anterior ---------------------------------
+      /* dependiendo de la direccón en la que se este moviendo de esa forma se iran borrando los rastros del 
+      sprite anterior*/
    if(velocidadx >=0 && velocidady<=0){
      
      for (int i = 1; i <= velocidadx; i++) V_line(xPelota - i,  yPelota   - velocidady , ALTO_PELOTA, 0XFFFF);
@@ -399,6 +417,7 @@ void pintarPelota(){
 }
 
 void dibujarBloques(){
+  // se dibujan los bloques segun la configuracion antes colocada
   for (int i = 0; i < nBloques ; i++){
     if(mostrarBloque[i] >= 1  ) LCD_Sprite(xBloques[i],yBloques[i], ANCHO_BLOQUE, ALTO_BLOQUE, bloqueNaranja,4, mostrarBloque[i]-1,0,0);
   }
@@ -422,7 +441,7 @@ void colisionDectection(){
             ( yBloques[i]  <= yPelota + ALTO_PELOTA && yBloques[i] + ALTO_BLOQUE > yPelota)&& mostrarBloque[i] >= 1 ){
               if(xPelota + ANCHO_PELOTA <= xBloques[i] + ANCHO_BLOQUE/2 && xPelota + ANCHO_PELOTA >= xBloques[i] && velocidadx >= 0 ) velocidadx *= -1;
               else if (xPelota  >= xBloques[i] + ANCHO_BLOQUE/2 && xPelota  <= xBloques[i] + ANCHO_BLOQUE && velocidadx <= 0 ) velocidadx *= -1;
-              else if(!yaCambio){
+              else if(!yaCambio && velocidady <= 0){
                 
                 velocidady *= -1;
                 yaCambio = true;
@@ -447,6 +466,7 @@ void colisionDectection(){
     }
 
     if( yPelota + velocidady + ANCHO_PELOTA >= 240 ) {
+      // se pierde una vida
       vidas--;
       FillRect(xPelota, yPelota, ANCHO_PELOTA, ALTO_PELOTA, 0xFFFF);
       LCD_Print("X" + String(vidas) , 18, 0, 2, 0x0, 0xFFFF);
@@ -459,6 +479,7 @@ void colisionDectection(){
 }
 
 void readButton(){
+  // antirebote para el boton
     int lectura = digitalRead(BUTTON);
 
     if (lectura !=buttonAnterior) timeButton = millis();
@@ -506,6 +527,7 @@ void comprobacionGanar(){
 }
 
 void establecerNivel(){
+  // en base al valor del nivel se coloca una configuración de bloques
   switch(lvl){
         case 1:
           nBloques = 6;
